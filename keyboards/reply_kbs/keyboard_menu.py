@@ -3,12 +3,12 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 kb_menu = ReplyKeyboardMarkup(
     keyboard=[
         [
-            KeyboardButton(text='💰 Покупка золота'),
-            KeyboardButton(text='🧮 Калькулятор')
+            KeyboardButton(text='💰 Голда'),
+            KeyboardButton(text='🧮 Калькулятор'),
+            KeyboardButton(text='📢 Отзывы'),
         ],
         [
-            KeyboardButton(text='🆕 Другие товары'),
-            KeyboardButton(text='📢 Отзывы'),
+            KeyboardButton(text='‼️ Правила покупки'),
             KeyboardButton(text='🛠 Тех поддержка')
         ]
     ],

@@ -44,12 +44,15 @@ async def mailing_text(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(text='next', state=bot_mailing.state)
 async def start(call: types.CallbackQuery, state: FSMContext):
     users = await commands.select_all_users()
+    users_ids = [user[0] for user in users]
     data = await state.get_data()
     text = data.get('text')
     await state.finish()
-    for user in users:
+    for user in users_ids:
+        user = str(user)
+        print(user)
         try:
-            await dp.bot.send_message(chat_id=user.user_id, text=text)
+            await dp.bot.send_message(chat_id=user, text=text)
             await sleep(0.33)
         except Exception:
             pass
@@ -83,13 +86,16 @@ async def mailing_text(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(text='next', state=bot_mailing.photo)
 async def start(call: types.CallbackQuery, state: FSMContext):
     users = await commands.select_all_users()
+    users_ids = [user[0] for user in users]
     data = await state.get_data()
     text = data.get('text')
     photo = data.get('photo')
     await state.finish()
-    for user in users:
+    for user in users_ids:
+        user = str(user)
+        print(user)
         try:
-            await dp.bot.send_photo(chat_id=user.user_id, photo=photo, caption=text)
+            await dp.bot.send_photo(chat_id=user, photo=photo, caption=text)
             await sleep(0.33)
         except Exception:
             pass

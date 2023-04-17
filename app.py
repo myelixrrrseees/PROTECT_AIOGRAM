@@ -1,3 +1,20 @@
+from aiogram import executor
+from aiogram.dispatcher.middlewares import LifetimeControllerMiddleware
+from handlers import dp
+import asyncio
+
+
+class StartupMiddleware(LifetimeControllerMiddleware):
+    def __init__(self, on_startup_func):
+        super().__init__()
+        self.on_startup_func = on_startup_func
+
+    async def on_pre_process_update(self, update, data):
+        if not self.done:
+            await self.on_startup_func(dp)
+            self.done = True
+
+
 async def on_startup(dp):
 
     import middlewares
@@ -6,16 +23,13 @@ async def on_startup(dp):
     import filters
     filters.setup(dp)
 
-    from loader import db
-    from utils.db_api.db_gino import on_startup
-    print('Подключение к PostgrSQL')
-    await on_startup(dp)
+    from utils.db_api import sqlite3
 
-    # print('Удаление базы данных')
-    # await db.gino.drop_all()
+    # await sqlite3.db_drop()
+    # print("DB успешно дропнута")
 
-    print('Создание таблиц')
-    await db.gino.create_all()
+    await sqlite3.db_start()
+    print("Таблицы успешно созданы")
 
     print('Готово')
 
@@ -30,7 +44,8 @@ async def on_startup(dp):
 
 
 if __name__ == '__main__':
-    from aiogram import executor
-    from handlers import dp
-
-    executor.start_polling(dp, on_startup=on_startup)
+    loop = asyncio.get_event_loop()
+    middleware = StartupMiddleware(on_startup)
+    dp.middleware.setup(middleware)
+    executor.start_polling(dp, on_startup=on_startup, loop=loop, skip_updates=True)
+    # executor.start_polling(dp, on_startup=on_startup)

@@ -39,11 +39,11 @@ bank_btns = InlineKeyboardMarkup(row_width=1,
                                  ])
 
 
-@dp.message_handler(IsPrivate(), IsDatabaseUser(), text='💰 Покупка золота')
+@dp.message_handler(Text('💰 Голда'))
 async def create_withdraw(message: Message, state: FSMContext):
     await state.reset_state()
     msg = await message.answer('Введите сумму выплаты (минимум 50):',
-                                reply_markup=cancel_btn)
+                                    reply_markup=cancel_btn)
     await state.update_data(message_ids=msg.message_id)
     await withdraw.amount.set()
 
@@ -52,7 +52,8 @@ async def create_withdraw(message: Message, state: FSMContext):
 async def get_amount(message: Message, state: FSMContext):
     try:
         amount = float(message.text)
-        cal = amount * 0.67
+        pre = amount * 0.67
+        cal = float(f"{pre:.2f}")
         if amount >= 50:
             await state.update_data(withdraw_amount=amount)
             msg_gold = await message.answer(f'{amount} рублей - {cal} голды\n'
@@ -60,7 +61,7 @@ async def get_amount(message: Message, state: FSMContext):
                                     reply_markup=bank_btns)
             await state.update_data(msg_gold=msg_gold)
         else:
-            msg = await message.reply(f'Минимальная сумма для выплаты 20 USD',
+            msg = await message.reply(f'Минимальная сумма для выплаты 50 рублей',
                                         reply_markup=cancel_btn)
             await asyncio.sleep(20)
             await message.delete()
@@ -84,11 +85,11 @@ async def get_amount(message: Message, state: FSMContext):
 async def tinkoff_pay(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     msg = await call.message.answer('Наши реквизиты\n'
-                              f'Сумма: {data.get("withdraw_amount")}\n'
-                              '...............\n'
-                              '...............\n'
-                              '\n'
-                              'Как только переведете, отправте скрин чека')
+                                    f'Сумма: {data.get("withdraw_amount")}\n'
+                                    '...............\n'
+                                    '...............\n'
+                                    '\n'
+                                    'Как только переведете, отправте скрин чека')
     await withdraw.photo.set()
     await state.update_data(msg=msg)
 
@@ -105,7 +106,6 @@ async def sber_pay(call: CallbackQuery, state: FSMContext):
     await withdraw.photo.set()
     await state.update_data(msg=msg)
     
-
 
 @dp.callback_query_handler(Text('qiwi'), state=['*'])
 async def qiwi_pay(call: CallbackQuery, state: FSMContext):
@@ -147,40 +147,39 @@ async def get_address(message: Message, state: FSMContext):
                     os.remove(path)
                 except:
                     pass
-                await message.answer('Заказ успешно создан!\n'
-                                             'Пожалуйста, ожидайте ответа администратора.\n'
-                                             'До тех пор ничего не пишите и не отправляйте боту!!!')
+                await message.answer('Заказ успешно создан ❗️\n'
+                                     'Пожалуйста, ожидайте \nподтверждения оплаты.')
                 await dp.bot.send_message(1194575524, text="Поступила новая заявка оплаты.\n\n"
                                   "Нажмите на кнопку ниже, чтобы посмотреть заявку", reply_markup=ikb_withdraw)
                 
                 
             except Exception as err:
                 logging.exception(err)
-                await message.answer('При создании заявки на выплату произошла ошибка.')
+                await message.answer('При создании заявки на оплату произошла ошибка.')
                 try:
                     await withdraw_commands.accept_withdraw(id=withdraw_id,
                                                             status='error')
                 except Exception:
                     pass
         else:
-            await message.answer(f'Ваш баланс меньше суммы выплаты')
+            await message.answer(f'Ваш баланс меньше суммы оплаты')
     except Exception:
-        await message.answer('При создании заявки на выплату произошла ошибка')
+        await message.answer('При создании заявки на оплату произошла ошибка')
     finally:
         await state.reset_state()
-    for message_id in str(data.get('message_ids')).split(', '):
-        try:
-            await dp.bot.delete_message(chat_id=message.from_user.id, message_id=message_id)
-            await asyncio.sleep(0.5)
-        except Exception as err:
-            print(err)
-    else:
-        await message.delete()
-    await asyncio.sleep(0.5)
-    msg_data = data.get("msg")
-    msg_gold = data.get("msg_gold")
-    await msg_gold.delete()
-    await msg_data.delete()
+    # for message_id in str(data.get('message_ids')).split(', '):
+    #     try:
+    #         await dp.bot.delete_message(chat_id=message.from_user.id, message_id=message_id)
+    #         await asyncio.sleep(0.5)
+    #     except Exception as err:
+    #         print(err)
+    # else:
+    #     await message.delete()
+    # await asyncio.sleep(0.5)
+    # msg_data = data.get("msg")
+    # msg_gold = data.get("msg_gold")
+    # await msg_gold.delete()
+    # await msg_data.delete()
 
 
 @dp.callback_query_handler(Text('cancel_withdraw'), state=['*'])
@@ -196,6 +195,3 @@ async def cancel_withdraw(call: CallbackQuery, state: FSMContext):
             except Exception as err:
                 print(err)
                 await asyncio.sleep(0.5)
-
-
-

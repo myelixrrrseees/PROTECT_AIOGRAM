@@ -1,79 +1,84 @@
-import logging
 
-from asyncpg import UniqueViolationError
-
-import sqlite3 as sql
-from utils.db_api.schemes.withdraw import Withdraw
+from sqlite3 import connect
 
 
 async def create_withdraw(user_id: int, amount: int, photo_name: str, photo_id: str, status: str):
     try:
-        withdraw = Withdraw(user_id=user_id, amount=amount, photo_name=photo_name, photo_id=photo_id, status=status)
-        await withdraw.create()
-        return withdraw.id
-    except UniqueViolationError:
-        print('Выплата не создана')
+        with connect('PROTECT.db') as db:
+            cur = db.cursor()
+            try:
+                cur.execute("INSERT INTO Withdraw VALUES(NULL, ?, ?, ?, ?, ?)",
+                            (user_id, amount, photo_name, photo_id, status))
+            except Exception as err:
+                print(err)
+            withdraw = cur.lastrowid
+            db.commit()
+            cur.close()
+            return withdraw
+    except:
+        print("Не удалось создать пользователя")
         return False
 
 
 async def select_withdraw(status: str = 'created'):
     try:
-        withdraw = await Withdraw.query.where(Withdraw.status == status).gino.first()
-        return withdraw
+        with connect('PROTECT.db') as db:
+            cur = db.cursor()
+            try:
+                withdraw = cur.execute("SELECT * FROM Withdraw WHERE status = '{key}'".format(key=status)).fetchone()
+            except Exception as err:
+                print(err)
+            cur.close()
+            return withdraw
 
     except:
         print("Не удалось найти заказ по статусу")
 
 
-async def select_withdraw_by_id(id: int):
-    withdraw = await Withdraw.query.where(Withdraw.id == id).gino.first()
-    return withdraw
+async def select_withdraw_by_id(withdraw_id: int):
+    try:
+        with connect('PROTECT.db') as db:
+            cur = db.cursor()
+            withdraw = cur.execute("SELECT * FROM Withdraw WHERE id = {key}".format(key=withdraw_id)).fetchone()
+            cur.close()
+            return withdraw
+    except:
+        print("Не удалось получить заказ по айди")
+        return False
 
 
 async def select_withdraw_by_user_id(user_id: int):
     try:
-        withdraw = await Withdraw.query.where(Withdraw.user_id == user_id).gino.first()
+        with connect('PROTECT.db') as db:
+            cur = db.cursor()
+            withdraw = cur.execute("SELECT * FROM Withdraw WHERE user_id = {key}".format(key=user_id)).fetchone()
+            cur.close()
         return withdraw
-
     except:
         print("Не удалось найти пользователя по его айди")
+        return False
 
 
-async def accept_withdraw(id: int, status: str = 'accepted'):
-    withdraw = await Withdraw.query.where(Withdraw.id == id).gino.first()
-    if withdraw:
-        try:
-            await withdraw.update(status=status).apply()
+async def accept_withdraw(withdraw_id: int, status: str = 'accepted'):
+    try:
+        with connect('PROTECT.db') as db:
+            cur = db.cursor()
+            cur.execute("UPDATE Withdraw SET status = '{key}' WHERE id = {kiy}".format(key=status, kiy=withdraw_id))
+            db.commit()
+            cur.close()
             return True
-        except Exception as err:
-            logging.exception(err)
-    else:
+    except:
+        print("Ошибка поддтверждения")
         return False
     
 
-async def select_photo_name_from_db(id: int):
-    user = await Withdraw.query.where(Withdraw.id==id).gino.first()
-    if user:
-        try:
-            photo_name = user.photo_name
-            print(photo_name)
-            return photo_name
-        except Exception as err:
-            print(err)
-            print("ОШИБКА СБОРА ФОТО")
-    else:
-        print("Нет такого заказа")
+async def take_amount(withdraw_id: int):
+    try:
+        with connect('PROTECT.db') as db:
+            cur = db.cursor()
 
-
-async def select_photo_id_from_db(id: int):
-    user = await Withdraw.query.where(Withdraw.id==id).gino.first()
-    if user:
-        try:
-            photo_id = user.photo_id
-            print(photo_id)
-            return photo_id
-        except Exception as err:
-            print(err)
-            print("ОШИБКА СБОРА ФОТО")
-    else:
-        print("Нет такого заказа")
+            amount = cur.execute("SELECT amount FROM Withdraw WHERE id = {key}".format(key=withdraw_id)).fetchone()
+            cur.close()
+            return amount
+    except:
+        print("Не удалось вытащить цену")
